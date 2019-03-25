@@ -14,20 +14,24 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage>
-    with AutomaticKeepAliveClientMixin {
+// with AutomaticKeepAliveClientMixin
+{
   String homePageContent = '正在获取数据';
+  int page = 1;
+  List<Map> hotGoodsList = [];
 
-  @override
-  // TODO: implement wantKeepAlive
-  bool get wantKeepAlive => true;
+  // @override
+  // bool get wantKeepAlive => true;
 
   @override
   void initState() {
-    getHomePageContent().then((val) {
+    request('homePageContent',
+        formdata: {'lon': '115.02932', 'lat': '35.76189'}).then((val) {
       setState(() {
         homePageContent = val.toString();
       });
     });
+    _getHotGoods();
     super.initState();
   }
 
@@ -94,6 +98,7 @@ class _HomePageState extends State<HomePage>
                   FloorContent(
                     floorGoodlist: floorGoodlist3,
                   ),
+                  _hotGoods()
                 ],
               ));
             } else {
@@ -103,6 +108,97 @@ class _HomePageState extends State<HomePage>
             }
           },
         ));
+  }
+
+  void _getHotGoods() {
+    var formdata = {'page': page};
+    request('homepagebelowConten', formdata: formdata).then((val) {
+      var data = json.decode(val.toString());
+      List<Map> newGoodsList = (data['data'] as List).cast();
+      setState(() {
+        hotGoodsList.addAll(newGoodsList);
+        page++;
+      });
+    });
+  }
+
+  // 火爆专区标题
+  Widget hotTitle = Container(
+    margin: EdgeInsets.only(top: 10.0),
+    alignment: Alignment.center,
+    color: Colors.transparent,
+    padding: EdgeInsets.all(5.0),
+    child: Text(
+      '火爆专区',
+      style: TextStyle(color: Colors.red),
+    ),
+  );
+
+  // 商品列表
+  Widget _wrapList() {
+    if (hotGoodsList.length != 0) {
+      List<Widget> listWidget = hotGoodsList.map((val) {
+        return InkWell(
+          onTap: () {},
+          child: Container(
+            width: ScreenUtil().setWidth(372),
+            color: Colors.white,
+            padding: EdgeInsets.all(5.0),
+            margin: EdgeInsets.only(bottom: 3.0),
+            child: Column(
+              children: <Widget>[
+                Image.network(
+                  val['image'],
+                  width: ScreenUtil().setWidth(370),
+                ),
+                Text(
+                  val['name'],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.pink,
+                    fontSize: ScreenUtil().setSp(26),
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    Text('￥${val['mallPrice']}'),
+                    Container(
+                      margin: EdgeInsets.only(left: 5.0),
+                      child: Text(
+                        '￥${val['price']}',
+                        style: TextStyle(
+                          color: Colors.black26,
+                          decoration: TextDecoration.lineThrough,
+                        ),
+                      ),
+                    )
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+      }).toList();
+      return Wrap(
+        spacing: 2,
+        children: listWidget,
+      );
+    } else {
+      return Text('');
+    }
+  }
+
+  Widget _hotGoods() {
+    return Container(
+      child: Column(
+        children: <Widget>[
+          hotTitle,
+          _wrapList(),
+        ],
+      ),
+    );
   }
 }
 
@@ -128,7 +224,7 @@ class SwiperDiy extends StatelessWidget {
         },
         itemCount: 3,
         pagination: new SwiperPagination(margin: new EdgeInsets.all(5.0)),
-        viewportFraction: 0.8,
+        // viewportFraction: 0.8,
         autoplay: true,
       ),
     );
