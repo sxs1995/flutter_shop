@@ -4,6 +4,7 @@ import 'package:flutter_swiper/flutter_swiper.dart';
 import 'dart:convert';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_easyrefresh/easy_refresh.dart';
 
 class HomePage extends StatefulWidget {
   final Widget child;
@@ -19,7 +20,8 @@ class _HomePageState extends State<HomePage>
   String homePageContent = '正在获取数据';
   int page = 1;
   List<Map> hotGoodsList = [];
-
+  GlobalKey<RefreshFooterState> _footerKey =
+      new GlobalKey<RefreshFooterState>();
   // @override
   // bool get wantKeepAlive => true;
 
@@ -31,83 +33,88 @@ class _HomePageState extends State<HomePage>
         homePageContent = val.toString();
       });
     });
-    _getHotGoods();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          title: Text('百姓生活家'),
-        ),
-        body: FutureBuilder(
-          future: getHomePageContent(),
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              var data = json.decode(snapshot.data.toString());
-              List<Map> swiper = (data['data']['slides'] as List).cast();
-              List<Map> navigatorList =
-                  (data['data']['category'] as List).cast();
-              List<Map> recommendList =
-                  (data['data']['recommend'] as List).cast();
-              List<Map> floorGoodlist = (data['data']['floor1'] as List).cast();
-              List<Map> floorGoodlist2 =
-                  (data['data']['floor2'] as List).cast();
-              List<Map> floorGoodlist3 =
-                  (data['data']['floor3'] as List).cast();
-              String adPicture =
-                  data['data']['advertesPicture']['PICTURE_ADDRESS'];
-              String leaderImage = data['data']['shopInfo']['leaderImage'];
-              String leaderPhone = data['data']['shopInfo']['leaderPhone'];
-              String pictureaddress =
-                  data['data']['floor1Pic']['PICTURE_ADDRESS'];
-              String pictureaddress2 =
-                  data['data']['floor2Pic']['PICTURE_ADDRESS'];
-              String pictureaddress3 =
-                  data['data']['floor3Pic']['PICTURE_ADDRESS'];
+      appBar: AppBar(
+        title: Text('百姓生活家'),
+      ),
+      body: FutureBuilder(
+        future: getHomePageContent(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            var data = json.decode(snapshot.data.toString());
+            List<Map> swiper = (data['data']['slides'] as List).cast();
+            List<Map> navigatorList = (data['data']['category'] as List).cast();
+            List<Map> recommendList =
+                (data['data']['recommend'] as List).cast();
+            List<Map> floorGoodlist = (data['data']['floor1'] as List).cast();
+            List<Map> floorGoodlist2 = (data['data']['floor2'] as List).cast();
+            List<Map> floorGoodlist3 = (data['data']['floor3'] as List).cast();
+            String adPicture =
+                data['data']['advertesPicture']['PICTURE_ADDRESS'];
+            String leaderImage = data['data']['shopInfo']['leaderImage'];
+            String leaderPhone = data['data']['shopInfo']['leaderPhone'];
+            String pictureaddress =
+                data['data']['floor1Pic']['PICTURE_ADDRESS'];
+            String pictureaddress2 =
+                data['data']['floor2Pic']['PICTURE_ADDRESS'];
+            String pictureaddress3 =
+                data['data']['floor3Pic']['PICTURE_ADDRESS'];
 
-              return SingleChildScrollView(
-                  child: Column(
+            return EasyRefresh(
+              child: ListView(
                 children: <Widget>[
                   SwiperDiy(swiperDataList: swiper),
-                  TopNavigattor(
-                    navigatorList: navigatorList,
-                  ),
+                  TopNavigattor(navigatorList: navigatorList),
                   AdBanner(adPicture: adPicture),
                   LeaderPhone(
-                    leaderImage: leaderImage,
-                    leaderPhone: leaderPhone,
-                  ),
+                      leaderImage: leaderImage, leaderPhone: leaderPhone),
                   Recommend(recommendList: recommendList),
-                  FloorTitle(
-                    picture_address: pictureaddress,
-                  ),
-                  FloorContent(
-                    floorGoodlist: floorGoodlist,
-                  ),
-                  FloorTitle(
-                    picture_address: pictureaddress2,
-                  ),
-                  FloorContent(
-                    floorGoodlist: floorGoodlist2,
-                  ),
-                  FloorTitle(
-                    picture_address: pictureaddress3,
-                  ),
-                  FloorContent(
-                    floorGoodlist: floorGoodlist3,
-                  ),
+                  FloorTitle(picture_address: pictureaddress),
+                  FloorContent(floorGoodlist: floorGoodlist),
+                  FloorTitle(picture_address: pictureaddress2),
+                  FloorContent(floorGoodlist: floorGoodlist2),
+                  FloorTitle(picture_address: pictureaddress3),
+                  FloorContent(floorGoodlist: floorGoodlist3),
                   _hotGoods()
                 ],
-              ));
-            } else {
-              return Center(
-                child: Text('加载中...'),
-              );
-            }
-          },
-        ));
+              ),
+              refreshFooter: ClassicsFooter(
+                key: _footerKey,
+                bgColor: Colors.white,
+                textColor: Colors.pink,
+                moreInfoColor: Colors.pink,
+                showMore: true,
+                noMoreText: '',
+                moreInfo: '加载中',
+                loadReadyText: '上拉加载',
+              ),
+              loadMore: () async {
+                print('开始加载更多....');
+                var formdata = {'page': page};
+                await request('homepagebelowConten', formdata: formdata)
+                    .then((val) {
+                  var data = json.decode(val.toString());
+                  List<Map> newGoodsList = (data['data'] as List).cast();
+                  setState(() {
+                    hotGoodsList.addAll(newGoodsList);
+                    page++;
+                  });
+                });
+              },
+            );
+          } else {
+            return Center(
+              child: Text('加载中...'),
+            );
+          }
+        },
+      ),
+    );
   }
 
   void _getHotGoods() {
