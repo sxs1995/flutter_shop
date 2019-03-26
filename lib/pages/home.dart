@@ -40,7 +40,7 @@ class _HomePageState extends State<HomePage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('百姓生活家'),
+        title: Text('百姓生活+'),
       ),
       body: FutureBuilder(
         future: getHomePageContent(),
@@ -270,6 +270,7 @@ class TopNavigattor extends StatelessWidget {
       height: ScreenUtil().setHeight(340),
       padding: EdgeInsets.all(3.0),
       child: GridView.count(
+        physics: NeverScrollableScrollPhysics(), //禁止回弹
         crossAxisCount: 5,
         padding: EdgeInsets.all(5.0),
         children: navigatorList.map((item) {
