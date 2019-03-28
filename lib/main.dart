@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import './pages/index_page.dart';
 import 'package:provide/provide.dart';
 import 'provide/child_category.dart';
+import 'provide/category_goodslist.dart';
 
 void main() {
   var childCategory = ChildCategory();
+  var categotyGoodsListProvide = GoodsListProvide();
   var providers = Providers();
-  providers..provide(Provider<ChildCategory>.value(childCategory));
+  providers
+    ..provide(Provider<ChildCategory>.value(childCategory))
+    ..provide(Provider<GoodsListProvide>.value(categotyGoodsListProvide));
   runApp(
     ProviderNode(
       child: Myapp(),
