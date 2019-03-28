@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
 import './pages/index_page.dart';
+import 'package:provide/provide.dart';
+import 'provide/child_category.dart';
 
 void main() {
-  runApp(Myapp());
+  var childCategory = ChildCategory();
+  var providers = Providers();
+  providers..provide(Provider<ChildCategory>.value(childCategory));
+  runApp(
+    ProviderNode(
+      child: Myapp(),
+      providers: providers,
+    ),
+  );
 }
 
 class Myapp extends StatelessWidget {
@@ -14,7 +24,7 @@ class Myapp extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       child: MaterialApp(
-        title: '百姓生活家',
+        title: '百姓生活+',
         // home:
         debugShowCheckedModeBanner: false,
         theme: ThemeData(primaryColor: Colors.pink),

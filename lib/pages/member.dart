@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provide/provide.dart';
+import '../provide/couter.dart';
 
 class MemberPage extends StatelessWidget {
   final Widget child;
@@ -8,9 +10,8 @@ class MemberPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      child: Center(
-        child: Text('用户中心'),
-      ),
-    );
+        child: Center(
+      child: Text('212312'),
+    ));
   }
 }
