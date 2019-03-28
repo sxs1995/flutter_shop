@@ -7,6 +7,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provide/provide.dart';
 import '../provide/child_category.dart';
 import '../provide/category_goodslist.dart';
+import 'package:flutter_easyrefresh/easy_refresh.dart';
 
 class CategoryPage extends StatefulWidget {
   final Widget child;
@@ -81,7 +82,7 @@ class _LeftCategoryNavState extends State<LeftCategoryNav> {
         list = category.data;
       });
       Provide.value<ChildCategory>(context)
-          .getChildCategory(list[0].bxMallSubDto);
+          .getChildCategory(list[0].bxMallSubDto, list[0].mallCategoryId);
       // List.data.forEach((item) => print(item.mallCategoryName));
     });
   }
@@ -111,7 +112,8 @@ class _LeftCategoryNavState extends State<LeftCategoryNav> {
         });
         var childList = list[index].bxMallSubDto;
         var categoryId = list[index].mallCategoryId;
-        Provide.value<ChildCategory>(context).getChildCategory(childList);
+        Provide.value<ChildCategory>(context)
+            .getChildCategory(childList, categoryId);
         _getGoodsList(categoryId: categoryId);
       },
       child: Container(
@@ -144,14 +146,41 @@ class RightCategoryNav extends StatefulWidget {
 
 class _RightCategoryNavState extends State<RightCategoryNav> {
   String itenClick = '00';
-  Widget _rightInkWell(BxMallSubDto item) {
-    bool isClick = (itenClick == item.mallSubId) ? true : false;
+  // 根据类别获取商品列表
+  void _getGoodsList(String categorySubId) async {
+    var data = {
+      'categoryId': Provide.value<ChildCategory>(context).categoryId,
+      'categorySubId': categorySubId,
+      'page': '1',
+    };
+
+    await request('getMallGoods', formdata: data).then((val) {
+      var data = json.decode(val.toString());
+      CategoryGoodsListModel goodslist = CategoryGoodsListModel.fromJson(data);
+      if (goodslist.data == null) {
+        Provide.value<GoodsListProvide>(context).getGoodsList([]);
+      } else {
+        Provide.value<GoodsListProvide>(context).getGoodsList(goodslist.data);
+      }
+    });
+  }
+
+  Widget _rightInkWell(int index, BxMallSubDto item) {
+    bool isClick = false;
+    isClick = (index == Provide.value<ChildCategory>(context).childIndex)
+        ? true
+        : false;
     return InkWell(
       onTap: () {
-        setState(() {
-          itenClick = item.mallSubId;
-        });
-        print(item.mallSubId);
+        var subId = item.mallSubId;
+        if (subId == '00') {
+          _getGoodsList('');
+        } else {
+          _getGoodsList(item.mallSubId);
+        }
+
+        Provide.value<ChildCategory>(context)
+            .changeChildIndex(index, subId == '00' ? '' : subId);
       },
       child: Container(
         padding: EdgeInsets.fromLTRB(5.0, 10.0, 5.0, 10.0),
@@ -186,7 +215,8 @@ class _RightCategoryNavState extends State<RightCategoryNav> {
             scrollDirection: Axis.horizontal,
             itemCount: childCtategory.childCtategoryList.length,
             itemBuilder: (BuildContext context, int index) {
-              return _rightInkWell(childCtategory.childCtategoryList[index]);
+              return _rightInkWell(
+                  index, childCtategory.childCtategoryList[index]);
             },
           ),
         );
@@ -212,18 +242,81 @@ class _CategoryGoodsState extends State<CategoryGoods> {
 
   @override
   Widget build(BuildContext context) {
+    GlobalKey<RefreshFooterState> _footerKey =
+        new GlobalKey<RefreshFooterState>();
+    var scrollController = new ScrollController();
+    void _getMoreList() async {
+      Provide.value<ChildCategory>(context).addpage();
+      var data = {
+        'categoryId': Provide.value<ChildCategory>(context).categoryId,
+        'categorySubId': Provide.value<ChildCategory>(context).subId,
+        'page': Provide.value<ChildCategory>(context).page,
+      };
+
+      await request('getMallGoods', formdata: data).then((val) {
+        var data = json.decode(val.toString());
+        CategoryGoodsListModel goodslist =
+            CategoryGoodsListModel.fromJson(data);
+        if (goodslist.data == null) {
+          Provide.value<ChildCategory>(context).changeText('没有更多了');
+        } else {
+          Provide.value<GoodsListProvide>(context).getMoreList(goodslist.data);
+        }
+      });
+    }
+
     return Provide<GoodsListProvide>(
       builder: (context, child, data) {
-        return Container(
-          width: ScreenUtil().setWidth(570),
-          height: ScreenUtil().setHeight(978),
-          child: ListView.builder(
-            itemCount: data.goodslist.length,
-            itemBuilder: (BuildContext context, int index) {
-              return _listWidget(data.goodslist[index]);
-            },
-          ),
-        );
+        try {
+          if (Provide.value<ChildCategory>(context).page == 1) {
+            //列表位置置于最上面
+            scrollController.jumpTo(0.0);
+          }
+        } catch (e) {
+          print('进入页面第一次初始化:${e}');
+        }
+        if (data.goodslist.length > 0) {
+          return Expanded(
+            child: Container(
+              width: ScreenUtil().setWidth(570),
+              child: EasyRefresh(
+                refreshFooter: ClassicsFooter(
+                  key: _footerKey,
+                  bgColor: Colors.white,
+                  textColor: Colors.pink,
+                  moreInfoColor: Colors.pink,
+                  showMore: true,
+                  noMoreText: Provide.value<ChildCategory>(context).noMoreText,
+                  moreInfo: '加载中',
+                  loadReadyText: '上拉加载',
+                ),
+                child: ListView.builder(
+                  controller: scrollController,
+                  itemCount: data.goodslist.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    return _listWidget(data.goodslist[index]);
+                  },
+                ),
+                loadMore: () async {
+                  print('开始加载更多....');
+                  _getMoreList();
+                },
+              ),
+            ),
+          );
+        } else {
+          return Container(
+            margin: EdgeInsets.only(top: 200.0),
+            child: Center(
+              child: Text(
+                '暂无数据',
+                style: TextStyle(
+                  color: Colors.black26,
+                ),
+              ),
+            ),
+          );
+        }
       },
     );
   }
